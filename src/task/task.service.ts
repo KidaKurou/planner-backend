@@ -6,6 +6,19 @@ import { TaskDto } from './dto/task.dto';
 export class TaskService {
   constructor(private prisma: PrismaService) { }
 
+  async getById(taskId: string, userId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: {
+        id: taskId,
+        userId
+      }
+    });
+
+    if (!task) return null;
+
+    return task;
+  }
+
   async getAll(userId: string) {
     return this.prisma.task.findMany({ where: { userId } });
   }
