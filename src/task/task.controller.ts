@@ -33,4 +33,10 @@ export class TaskController {
   async delete(@Param('id') taskId: string) {
     return this.taskService.delete(taskId);
   }
+
+  @Post(':id/breakdown')
+  @Auth()
+  async breakdownTask(@Param('id') taskId: string, @CurrentUser('id') userId: string) {
+    return this.taskService.BreakdownTask(taskId, userId);
+  }
 }

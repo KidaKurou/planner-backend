@@ -2,12 +2,11 @@ import { Module } from '@nestjs/common';
 import { TaskService } from './task.service';
 import { TaskController } from './task.controller';
 import { PrismaService } from 'src/prisma.service';
-import { AiModule } from 'src/ai/ai.module';
-import { TaskAiController } from './task-ai.controller';
+import { YandexGPTModule } from 'src/yandexgpt/yandexgpt.module';
 
 @Module({
-  imports: [AiModule],
-  controllers: [TaskController, TaskAiController],
+  imports: [YandexGPTModule],
+  controllers: [TaskController],
   providers: [TaskService, PrismaService],
   exports: [TaskService]
 })

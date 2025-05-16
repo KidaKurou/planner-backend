@@ -5,17 +5,17 @@ import { ConfigModule } from '@nestjs/config';
 import { TaskModule } from './task/task.module';
 import { TimeBlockModule } from './time-block/time-block.module';
 import { PomodoroModule } from './pomodoro/pomodoro.module';
-import { AiModule } from './ai/ai.module';
+import { YandexGPTModule } from './yandexgpt/yandexgpt.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), 
-    AuthModule, 
+    ConfigModule.forRoot({ isGlobal: true }), 
+    AuthModule,
     UserModule, 
     TaskModule, 
     TimeBlockModule, 
-    PomodoroModule, 
-    AiModule
+    PomodoroModule,
+    YandexGPTModule
   ],
 })
 export class AppModule {}
