@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
 	Injectable,
 	Logger,
@@ -6,6 +7,11 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import axios, { AxiosInstance } from 'axios'
+
+export interface SubtaskWithPriority {
+	name: string
+	priority: 'low' | 'medium' | 'high'
+}
 
 @Injectable()
 export class YandexGPTService {
@@ -61,31 +67,68 @@ export class YandexGPTService {
 					{
 						role: 'system',
 						text:
-							'Ты помощник, который разбивает задачи на логические подзадачи. ' +
+							'Ты помощник, который разбивает задачи на логические подзадачи с приоритетами. ' +
 							'Предоставь 2-5 четких, конкретных подзадач для выполнения основной задачи. ' +
+							'Каждая подзадача должна быть в формате: "НАЗВАНИЕ_ПОДЗАДАЧИ | ПРИОРИТЕТ" ' +
+							'где ПРИОРИТЕТ может быть: high, medium, или low. ' +
+							'Определи приоритет на основе важности и срочности подзадачи для выполнения основной задачи. ' +
 							'Каждая подзадача должна начинаться с новой строки и быть краткой (до 100 символов). ' +
-							'Подзадачи должны охватывать все необходимые шаги для выполнения основной задачи. ' +
-							'Не включай в ответ нумерацию, пояснения или дополнительный текст.'
+							'Не включай в ответ нумерацию или дополнительный текст. ' +
+							'Пример формата: "Изучить требования | high"'
 					},
 					{
 						role: 'user',
-						text: `Разбей эту задачу на подзадачи: ${taskName}`
+						text: `Разбей эту задачу на подзадачи с приоритетами: ${taskName}`
 					}
 				]
 			})
 
 			if (response.data?.result?.alternatives?.[0]?.message?.text) {
 				const subtasksText = response.data.result.alternatives[0].message.text
-				// Split by new line and filter out empty lines
-				return Array.from(
-					new Set(
-						subtasksText
-							.split('\n')
-							// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-							.map(t => t.replace(/^[-•\d.\s]+/, '').trim())
-							.filter(t => t.length > 0)
-					)
-				)
+
+				// Split by new line and parse each line for name and priority
+				const subtasks = subtasksText
+					.split('\n')
+					.map(line => line.replace(/^[-•\d.\s]+/, '').trim())
+					.filter(line => line.length > 0)
+					.map(line => {
+						// Try to parse format: "Task name | priority"
+						const parts = line.split('|').map(part => part.trim())
+
+						if (parts.length >= 2) {
+							const name = parts[0]
+							const priorityText = parts[1].toLowerCase()
+
+							// Map priority text to valid enum values
+							let priority: 'low' | 'medium' | 'high' = 'medium' // default
+							if (
+								priorityText.includes('high') ||
+								priorityText.includes('важн') ||
+								priorityText.includes('критич')
+							) {
+								priority = 'high'
+							} else if (
+								priorityText.includes('low') ||
+								priorityText.includes('низк') ||
+								priorityText.includes('мало')
+							) {
+								priority = 'low'
+							}
+
+							return { name, priority }
+						} else {
+							// Fallback: if no priority specified, assign medium priority
+							return { name: line, priority: 'medium' as const }
+						}
+					})
+					.filter(subtask => subtask.name.length > 0)
+
+				// Remove duplicates based on task name
+				const uniqueSubtasks: string[] = Array.from(
+					new Map(subtasks.map(subtask => [subtask.name, subtask])).values()
+				) as string[]
+
+				return uniqueSubtasks
 			}
 
 			this.logger.warn(

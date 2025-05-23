@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from 'src/prisma.service'
 import { TaskDto } from './dto/task.dto'
 import { YandexGPTService } from 'src/yandexgpt/yandexgpt.service'
+import { Priority } from '@prisma/client'
 
 @Injectable()
 export class TaskService {
@@ -66,20 +67,29 @@ export class TaskService {
 		}
 
 		// 2. Generate subtasks using YandexGPT
-		const subtaskNames = await this.yandexgptService.generateSubtasks(task.name)
+		const subtasksWithPriorities = await this.yandexgptService.generateSubtasks(
+			task.name
+		)
 
-		if (subtaskNames.length === 0) {
+		if (subtasksWithPriorities.length === 0) {
 			return { originalTask: task, subtasks: [] }
 		}
 
 		// 3. Create subtasks in the database
 		return this.prisma.$transaction(async tx => {
-			const created = await tx.task.createMany({
-				data: subtaskNames.map(name => ({
-					name,
+			const createData = subtasksWithPriorities.map(subtask => {
+				const [name, priority] = subtask.split(' | ')
+				return {
+					name: name,
+					priority: priority.toLowerCase() as Priority,
 					userId: task.userId,
-					createdAt: task.createdAt
-				})),
+					createdAt: task.createdAt,
+					isCompleted: false
+				}
+			})
+
+			const created = await tx.task.createMany({
+				data: createData,
 				skipDuplicates: true
 			})
 
