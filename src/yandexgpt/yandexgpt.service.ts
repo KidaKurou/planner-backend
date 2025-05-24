@@ -39,7 +39,7 @@ export class YandexGPTService {
 			}
 		})
 	}
-	async generateSubtasks(taskName: string): Promise<string[]> {
+	async generateSubtasks(taskName: string): Promise<SubtaskWithPriority[]> {
 		if (!this.catalogId || !this.iamToken) {
 			this.logger.error(
 				'Cannot generate subtasks: YandexGPT credentials not configured'
@@ -124,9 +124,9 @@ export class YandexGPTService {
 					.filter(subtask => subtask.name.length > 0)
 
 				// Remove duplicates based on task name
-				const uniqueSubtasks: string[] = Array.from(
+				const uniqueSubtasks = Array.from(
 					new Map(subtasks.map(subtask => [subtask.name, subtask])).values()
-				) as string[]
+				) as SubtaskWithPriority[]
 
 				return uniqueSubtasks
 			}

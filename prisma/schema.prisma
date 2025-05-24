@@ -26,6 +26,8 @@ model User {
   breakInterval  Int? @default(10) @map("break_interval")
   intervalsCount Int? @default(7) @map("intervals_count")
 
+  startTimeOfDay String? @default("09:00:00")
+
   tasks            Task[]
   timeBlocks       TimeBlock[]
   pomodoroSessions PomodoroSession[]

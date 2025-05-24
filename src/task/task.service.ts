@@ -78,10 +78,9 @@ export class TaskService {
 		// 3. Create subtasks in the database
 		return this.prisma.$transaction(async tx => {
 			const createData = subtasksWithPriorities.map(subtask => {
-				const [name, priority] = subtask.split(' | ')
 				return {
-					name: name,
-					priority: priority.toLowerCase() as Priority,
+					name: subtask.name,
+					priority: subtask.priority.toLowerCase() as Priority,
 					userId: task.userId,
 					createdAt: task.createdAt,
 					isCompleted: false

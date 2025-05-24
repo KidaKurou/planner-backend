@@ -28,7 +28,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "^6.8.2",
     "argon2": "^0.41.1",
     "axios": "^1.8.4",
     "class-transformer": "^0.5.1",
