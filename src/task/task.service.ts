@@ -16,6 +16,11 @@ export class TaskService {
 			where: {
 				id: taskId,
 				userId
+			},
+			include: {
+				subtasks: true,
+				parentTask: true,
+				timeBlocks: true
 			}
 		})
 
@@ -25,18 +30,44 @@ export class TaskService {
 	}
 
 	async getAll(userId: string) {
-		return this.prisma.task.findMany({ where: { userId } })
+		return this.prisma.task.findMany({
+			where: {
+				userId
+			},
+			include: {
+				subtasks: {
+					include: {
+						subtasks: true // Для вложенных подзадач
+					}
+				},
+				timeBlocks: true
+			}
+		})
 	}
 
 	async create(userId: string, dto: TaskDto) {
+		// Remove parentTaskId from dto to avoid conflict with relation
+		const { parentTaskId, ...restDto } = dto
 		return this.prisma.task.create({
 			data: {
-				...dto,
+				...restDto,
 				user: {
 					connect: {
 						id: userId
 					}
-				}
+				},
+				// Если указан parentTaskId, связываем с родительской задачей
+				...(parentTaskId && {
+					parentTask: {
+						connect: {
+							id: parentTaskId
+						}
+					}
+				})
+			},
+			include: {
+				subtasks: true,
+				parentTask: true
 			}
 		})
 	}
@@ -47,7 +78,11 @@ export class TaskService {
 				userId,
 				id: taskId
 			},
-			data: { ...dto }
+			data: { ...dto },
+			include: {
+				subtasks: true,
+				parentTask: true
+			}
 		})
 	}
 
@@ -76,26 +111,64 @@ export class TaskService {
 		}
 
 		// 3. Create subtasks in the database
-		return this.prisma.$transaction(async tx => {
-			const createData = subtasksWithPriorities.map(subtask => {
-				return {
-					name: subtask.name,
-					priority: subtask.priority.toLowerCase() as Priority,
-					userId: task.userId,
-					createdAt: task.createdAt,
-					isCompleted: false
-				}
-			})
+		const createdSubtasks = await this.prisma.$transaction(async tx => {
+			const subtasks: Awaited<ReturnType<typeof tx.task.create>>[] = []
 
-			const created = await tx.task.createMany({
-				data: createData,
-				skipDuplicates: true
-			})
+			for (const subtask of subtasksWithPriorities) {
+				const created = await tx.task.create({
+					data: {
+						name: subtask.name,
+						priority: subtask.priority.toLowerCase() as Priority,
+						userId: task.userId,
+						createdAt: task.createdAt,
+						isCompleted: false,
+						parentTaskId: taskId,
+						category: task.category,
+						tags: [...(task.tags || []), 'ai-generated']
+					},
+					include: {
+						parentTask: true
+					}
+				})
+				subtasks.push(created)
+			}
 
-			return {
-				originalTask: task,
-				created
+			return subtasks
+		})
+
+		return {
+			originalTask: task,
+			subtasks: createdSubtasks
+		}
+	}
+
+	async getByCategory(userId: string, category: string) {
+		return this.prisma.task.findMany({
+			where: {
+				userId,
+				category
+			},
+			include: {
+				subtasks: true,
+				timeBlocks: true
 			}
 		})
+	}
+
+	async getUserCategories(userId: string) {
+		const tasks = await this.prisma.task.findMany({
+			where: {
+				userId,
+				category: {
+					not: null
+				}
+			},
+			select: {
+				category: true
+			},
+			distinct: ['category']
+		})
+
+		return tasks.map(t => t.category).filter(Boolean)
 	}
 }

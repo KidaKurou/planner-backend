@@ -44,8 +44,17 @@ model Task {
   priority    Priority?
   isCompleted Boolean?  @default(false) @map("is_completed")
 
+  category     String?
+  tags         String[] @default([])
+  parentTaskId String?  @map("parent_task_id")
+
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parentTask Task?  @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks   Task[] @relation("TaskSubtasks")
+
+  timeBlocks TimeBlock[]
 
   @@map("task")
 }
@@ -62,6 +71,9 @@ model TimeBlock {
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId String? @map("task_id")
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@map("time_block")
 }

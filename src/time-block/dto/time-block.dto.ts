@@ -1,17 +1,21 @@
-import { IsNumber, IsOptional, IsString } from "class-validator";
+import { IsNumber, IsOptional, IsString } from 'class-validator'
 
 export class TimeBlockDto {
-    @IsString()
-    name: string
+	@IsString()
+	name: string
 
-    @IsOptional()
-    @IsString()
-    color?: string
+	@IsOptional()
+	@IsString()
+	color?: string
 
-    @IsNumber()
-    duration: number
+	@IsNumber()
+	duration: number
 
-    @IsNumber()
-    @IsOptional()
-    order?: number
+	@IsNumber()
+	@IsOptional()
+	order?: number
+
+	@IsString()
+	@IsOptional()
+	taskId?: string
 }
